@@ -1,1 +1,184 @@
-/* You can add global styles to this file, and also import other style files */
+/* ==========================================================================
+   CineMovies Design Tokens & Global Stylesheet
+   Modern Cinematic Editorial UI
+   ========================================================================== */
+
+:root,
+:root[data-theme='dark'] {
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Surfaces & Canvas */
+  --bg-canvas: #0b0d13;
+  --bg-surface: #141721;
+  --bg-surface-elevated: #1d212f;
+  --bg-surface-hover: #252b3d;
+  --bg-glass: rgba(20, 23, 33, 0.75);
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.16);
+  --border-focus: rgba(245, 166, 35, 0.5);
+
+  /* Typography Colors */
+  --text-primary: #f4f6fa;
+  --text-secondary: #c0c6d4;
+  --text-muted: #828a9c;
+  --text-on-accent: #0b0d13;
+
+  /* Accents */
+  --accent-gold: #f5a623;
+  --accent-gold-hover: #ffb83d;
+  --accent-gold-glow: rgba(245, 166, 35, 0.2);
+  --accent-gold-subtle: rgba(245, 166, 35, 0.1);
+
+  /* Status Tokens */
+  --color-danger: #ff4d4f;
+  --color-danger-bg: rgba(255, 77, 79, 0.12);
+  --color-success: #22c55e;
+  --color-success-bg: rgba(34, 197, 94, 0.12);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+
+  /* Shadows & Elevation */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
+  --shadow-poster: 0 16px 36px -8px rgba(0, 0, 0, 0.7);
+
+  /* Border Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme='light'] {
+  --bg-canvas: #f6f8fb;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f0f3f8;
+  --bg-surface-hover: #e6ebf3;
+  --bg-glass: rgba(255, 255, 255, 0.82);
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-medium: rgba(0, 0, 0, 0.16);
+  --border-focus: rgba(217, 130, 0, 0.6);
+
+  --text-primary: #0f141f;
+  --text-secondary: #3b4353;
+  --text-muted: #6b7485;
+  --text-on-accent: #ffffff;
+
+  --accent-gold: #d98200;
+  --accent-gold-hover: #bf7200;
+  --accent-gold-glow: rgba(217, 130, 0, 0.18);
+  --accent-gold-subtle: rgba(217, 130, 0, 0.08);
+
+  --color-danger: #dc2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.1);
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.1);
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.1);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.12);
+  --shadow-poster: 0 14px 28px -6px rgba(0, 0, 0, 0.15);
+}
+
+/* Base Resets */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Modern focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+/* Animations & Keyframes */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-anim {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-elevated) 25%,
+    var(--bg-surface-hover) 50%,
+    var(--bg-surface-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}

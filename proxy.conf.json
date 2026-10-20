@@ -1,0 +1,12 @@
+{
+  "/api": {
+    "target": "http://localhost:5211",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/token": {
+    "target": "http://localhost:5211",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
