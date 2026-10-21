@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { APP_CONFIG } from './core/config/app.config.token';
+import { AuthModalComponent } from './core/auth/auth-modal.component';
 import { AppHeaderComponent } from './core/layout/header.component';
 import { ToastContainerComponent } from './core/layout/toast-container.component';
 import { MovieFormModalComponent } from './features/movies/components/movie-form-modal.component';
@@ -12,6 +14,7 @@ import { CreateMovieRequest, UpdateMovieRequest } from './features/movies/models
   imports: [
     RouterOutlet,
     AppHeaderComponent,
+    AuthModalComponent,
     ToastContainerComponent,
     MovieFormModalComponent,
   ],
@@ -21,6 +24,7 @@ import { CreateMovieRequest, UpdateMovieRequest } from './features/movies/models
 })
 export class App {
   readonly store = inject(MoviesStore);
+  readonly config = inject(APP_CONFIG);
 
   onSaveMovie(payload: CreateMovieRequest | UpdateMovieRequest): void {
     this.store.saveMovie(payload);

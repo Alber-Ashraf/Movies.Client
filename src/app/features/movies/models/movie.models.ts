@@ -1,6 +1,8 @@
 export interface MovieResponse {
   readonly id: string;
   readonly title: string;
+  readonly description?: string | null;
+  readonly trailerUrl?: string | null;
   readonly rating: number | null;
   readonly userRating: number | null;
   readonly slug: string;
@@ -18,12 +20,16 @@ export interface MoviesResponse {
 
 export interface CreateMovieRequest {
   readonly title: string;
+  readonly description?: string | null;
+  readonly trailerUrl?: string | null;
   readonly yearOfRelease: number;
   readonly genres: readonly string[];
 }
 
 export interface UpdateMovieRequest {
   readonly title: string;
+  readonly description?: string | null;
+  readonly trailerUrl?: string | null;
   readonly yearOfRelease: number;
   readonly genres: readonly string[];
 }
@@ -45,4 +51,18 @@ export interface GetAllMoviesParams {
   readonly sortBy?: string;
   readonly page?: number;
   readonly pageSize?: number;
+}
+
+export function extractYouTubeVideoId(url?: string | null): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const match = trimmed.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
+export function getYouTubeThumbnailUrl(url?: string | null): string | null {
+  const videoId = extractYouTubeVideoId(url);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 }

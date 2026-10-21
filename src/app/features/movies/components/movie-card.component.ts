@@ -4,32 +4,61 @@ import {
   computed,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MovieResponse } from '../models/movie.models';
+import {
+  MovieResponse,
+  getYouTubeThumbnailUrl,
+} from '../models/movie.models';
 import { BadgeComponent } from '../../../shared/ui/badge/badge.component';
 import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.component';
+import { TrailerModalComponent } from './trailer-modal.component';
 
 @Component({
   selector: 'app-movie-card',
   standalone: true,
-  imports: [RouterLink, BadgeComponent, StarRatingComponent],
+  imports: [RouterLink, BadgeComponent, StarRatingComponent, TrailerModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article class="movie-card">
-      <!-- Dynamic Cinema Poster Artwork -->
-      <a [routerLink]="['/movies', movie().slug]" class="poster-frame" [style.background]="posterGradient()">
+      <!-- Dynamic Cinema Poster Artwork or YouTube Thumbnail -->
+      <div class="poster-frame" [style.background]="posterGradient()">
+        @if (thumbnailUrl(); as thumb) {
+          <img
+            [src]="thumb"
+            [alt]="movie().title + ' thumbnail'"
+            class="poster-image"
+            loading="lazy"
+          />
+        }
         <div class="poster-overlay">
-          <span class="poster-year">{{ movie().yearOfRelease }}</span>
-          <div class="poster-center">
-            <span class="poster-monogram">{{ monogram() }}</span>
+          <div class="top-row">
+            <span class="poster-year">{{ movie().yearOfRelease }}</span>
+            @if (movie().trailerUrl) {
+              <button
+                type="button"
+                class="trailer-badge-btn"
+                title="Watch Official Trailer"
+                (click)="onOpenTrailer($event)"
+              >
+                ▶ Trailer
+              </button>
+            }
           </div>
+
+          @if (!thumbnailUrl()) {
+            <div class="poster-center">
+              <span class="poster-monogram">{{ monogram() }}</span>
+            </div>
+          }
+
           <div class="poster-rating-pill">
             <span class="star-glyph">★</span>
             <span>{{ formattedAvgRating() }}</span>
           </div>
         </div>
-      </a>
+      </div>
 
       <!-- Card Metadata Body -->
       <div class="card-body">
@@ -48,6 +77,13 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
             <app-badge variant="neutral">+{{ movie().genres.length - 3 }}</app-badge>
           }
         </div>
+
+        <!-- Real Description / Plot Snippet -->
+        @if (movie().description) {
+          <p class="movie-synopsis" [title]="movie().description">
+            {{ movie().description }}
+          </p>
+        }
 
         <!-- Interactive Rating & Admin Actions Footer -->
         <div class="card-footer">
@@ -75,36 +111,48 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
             </div>
           </div>
 
-          @if (isAdmin()) {
+          @if (canEdit() || canDelete()) {
             <div class="admin-actions">
-              <button
-                type="button"
-                class="icon-action"
-                title="Edit movie"
-                (click)="editRequested.emit(movie())"
-                aria-label="Edit movie"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="icon-action danger"
-                title="Delete movie"
-                (click)="deleteRequested.emit(movie())"
-                aria-label="Delete movie"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
+              @if (canEdit()) {
+                <button
+                  type="button"
+                  class="icon-action"
+                  title="Edit movie"
+                  (click)="editRequested.emit(movie())"
+                  aria-label="Edit movie"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                  </svg>
+                </button>
+              }
+              @if (canDelete()) {
+                <button
+                  type="button"
+                  class="icon-action danger"
+                  title="Delete movie"
+                  (click)="deleteRequested.emit(movie())"
+                  aria-label="Delete movie"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              }
             </div>
           }
         </div>
       </div>
     </article>
+
+    <!-- Trailer Player Modal -->
+    <app-trailer-modal
+      [isOpen]="isTrailerOpen()"
+      [movieTitle]="movie().title"
+      [trailerUrl]="movie().trailerUrl"
+      (closed)="isTrailerOpen.set(false)"
+    />
   `,
   styles: [`
     .movie-card {
@@ -132,27 +180,60 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
       overflow: hidden;
     }
 
+    .poster-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
     .poster-overlay {
       position: absolute;
       inset: 0;
-      padding: 14px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      background: linear-gradient(180deg, rgba(11, 13, 19, 0.2) 0%, rgba(11, 13, 19, 0.85) 100%);
+      background: linear-gradient(180deg, rgba(11, 13, 19, 0.45) 0%, rgba(11, 13, 19, 0.88) 100%);
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .poster-year {
-      align-self: flex-start;
       padding: 3px 9px;
       border-radius: var(--radius-sm);
-      background: rgba(11, 13, 19, 0.7);
+      background: rgba(11, 13, 19, 0.75);
       backdrop-filter: blur(6px);
       color: #e2e8f0;
       font-size: 0.75rem;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .trailer-badge-btn {
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(229, 9, 20, 0.85);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .trailer-badge-btn:hover {
+      background: #e50914;
+      transform: scale(1.05);
     }
 
     .poster-center {
@@ -177,7 +258,7 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
       gap: 4px;
       padding: 4px 10px;
       border-radius: var(--radius-full);
-      background: rgba(11, 13, 19, 0.82);
+      background: rgba(11, 13, 19, 0.85);
       border: 1px solid rgba(245, 166, 35, 0.35);
       color: #f8fafc;
       font-size: 0.8rem;
@@ -194,7 +275,7 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
       display: flex;
       flex-direction: column;
       flex: 1;
-      gap: 12px;
+      gap: 10px;
     }
 
     .title-row {
@@ -225,6 +306,17 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
       flex-wrap: wrap;
       gap: 6px;
       min-height: 24px;
+    }
+
+    .movie-synopsis {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin: 0;
     }
 
     .card-footer {
@@ -304,12 +396,19 @@ import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.
 export class MovieCardComponent {
   readonly movie = input.required<MovieResponse>();
   readonly canRate = input<boolean>(false);
-  readonly isAdmin = input<boolean>(false);
+  readonly canEdit = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
 
   readonly rated = output<number>();
   readonly ratingCleared = output<void>();
   readonly editRequested = output<MovieResponse>();
   readonly deleteRequested = output<MovieResponse>();
+
+  protected readonly isTrailerOpen = signal<boolean>(false);
+
+  protected readonly thumbnailUrl = computed(() => {
+    return getYouTubeThumbnailUrl(this.movie().trailerUrl);
+  });
 
   protected readonly formattedAvgRating = computed(() => {
     const r = this.movie().rating;
@@ -336,4 +435,10 @@ export class MovieCardComponent {
     const hue2 = (hue1 + 48) % 360;
     return `linear-gradient(135deg, hsl(${hue1}, 55%, 24%) 0%, hsl(${hue2}, 65%, 14%) 100%)`;
   });
+
+  onOpenTrailer(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.isTrailerOpen.set(true);
+  }
 }

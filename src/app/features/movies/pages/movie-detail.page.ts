@@ -8,6 +8,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/layout/toast.service';
@@ -18,7 +19,11 @@ import { ConfirmDialogComponent } from '../../../shared/ui/modal/confirm-dialog.
 import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.component';
 import { MoviesApiService } from '../data-access/movies-api.service';
 import { MoviesStore } from '../data-access/movies.store';
-import { MovieResponse } from '../models/movie.models';
+import {
+  MovieResponse,
+  extractYouTubeVideoId,
+  getYouTubeThumbnailUrl,
+} from '../models/movie.models';
 
 @Component({
   selector: 'app-movie-detail-page',
@@ -63,8 +68,17 @@ import { MovieResponse } from '../models/movie.models';
       @else if (movie(); as m) {
         <article class="movie-presentation">
           <div class="presentation-poster" [style.background]="posterGradient()">
+            @if (thumbnailUrl(); as thumb) {
+              <img
+                [src]="thumb"
+                [alt]="m.title + ' poster'"
+                class="poster-image"
+              />
+            }
             <div class="poster-badge">{{ m.yearOfRelease }}</div>
-            <span class="poster-monogram">{{ monogram() }}</span>
+            @if (!thumbnailUrl()) {
+              <span class="poster-monogram">{{ monogram() }}</span>
+            }
             <div class="poster-slug">{{ m.slug }}</div>
           </div>
 
@@ -120,11 +134,43 @@ import { MovieResponse } from '../models/movie.models';
                   </div>
                 } @else {
                   <div class="guest-rating-prompt">
-                    <span>Switch Identity above to Member or Admin to rate this film.</span>
+                    <span>Sign in above to rate this film.</span>
                   </div>
                 }
               </div>
             </div>
+
+            <!-- Plot Synopsis -->
+            @if (m.description) {
+              <div class="synopsis-section">
+                <h3 class="section-heading">Synopsis</h3>
+                <p class="synopsis-text">{{ m.description }}</p>
+              </div>
+            }
+
+            <!-- Theatrical Trailer Player -->
+            @if (safeTrailerUrl(); as embedUrl) {
+              <div class="trailer-section">
+                <div class="trailer-header">
+                  <h3 class="section-heading">Official Trailer</h3>
+                  @if (m.trailerUrl) {
+                    <a [href]="m.trailerUrl" target="_blank" rel="noopener noreferrer" class="external-trailer-link">
+                      Open on YouTube ↗
+                    </a>
+                  }
+                </div>
+                <div class="theater-player-frame">
+                  <iframe
+                    class="trailer-iframe"
+                    [src]="embedUrl"
+                    title="Official trailer for {{ m.title }}"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+            }
 
             <!-- Technical Identifier Information -->
             <div class="tech-spec-grid">
@@ -136,10 +182,16 @@ import { MovieResponse } from '../models/movie.models';
                 <span class="spec-label">Canonical Slug</span>
                 <code class="spec-val">{{ m.slug }}</code>
               </div>
+              @if (m.trailerUrl) {
+                <div class="spec-cell">
+                  <span class="spec-label">Trailer Link</span>
+                  <code class="spec-val">{{ m.trailerUrl }}</code>
+                </div>
+              }
             </div>
 
-            <!-- Admin Actions Bar -->
-            @if (auth.isAdmin()) {
+            <!-- Admin / Trusted Critic Actions Bar -->
+            @if (auth.canManageMovies()) {
               <div class="admin-toolbar">
                 <button
                   type="button"
@@ -148,13 +200,15 @@ import { MovieResponse } from '../models/movie.models';
                 >
                   Edit Film
                 </button>
-                <button
-                  type="button"
-                  class="btn-admin-delete"
-                  (click)="isConfirmDeleteOpen.set(true)"
-                >
-                  Delete Film
-                </button>
+                @if (auth.isAdmin()) {
+                  <button
+                    type="button"
+                    class="btn-admin-delete"
+                    (click)="isConfirmDeleteOpen.set(true)"
+                  >
+                    Delete Film
+                  </button>
+                }
               </div>
             }
           </div>
@@ -241,13 +295,22 @@ import { MovieResponse } from '../models/movie.models';
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    .poster-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .poster-badge {
       position: absolute;
       top: 14px;
       left: 14px;
+      z-index: 2;
       padding: 4px 10px;
       border-radius: var(--radius-sm);
-      background: rgba(11, 13, 19, 0.75);
+      background: rgba(11, 13, 19, 0.8);
       backdrop-filter: blur(6px);
       font-size: 0.82rem;
       font-weight: 700;
@@ -267,11 +330,12 @@ import { MovieResponse } from '../models/movie.models';
       bottom: 12px;
       left: 12px;
       right: 12px;
+      z-index: 2;
       text-align: center;
       font-size: 0.76rem;
       font-family: monospace;
-      color: rgba(255, 255, 255, 0.55);
-      background: rgba(11, 13, 19, 0.6);
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(11, 13, 19, 0.75);
       padding: 4px 8px;
       border-radius: var(--radius-sm);
       overflow: hidden;
@@ -323,7 +387,7 @@ import { MovieResponse } from '../models/movie.models';
       border-radius: var(--radius-md);
       background: var(--bg-surface-elevated);
       border: 1px solid var(--border-subtle);
-      margin: 8px 0;
+      margin: 4px 0;
     }
 
     .rating-column {
@@ -389,6 +453,66 @@ import { MovieResponse } from '../models/movie.models';
     .guest-rating-prompt {
       font-size: 0.85rem;
       color: var(--text-muted);
+    }
+
+    .section-heading {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .synopsis-section {
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .synopsis-text {
+      font-size: 0.94rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .trailer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .trailer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .external-trailer-link {
+      font-size: 0.82rem;
+      color: var(--accent-gold);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .external-trailer-link:hover {
+      text-decoration: underline;
+    }
+
+    .theater-player-frame {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-medium);
+      box-shadow: var(--shadow-poster);
+    }
+
+    .trailer-iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
     }
 
     .tech-spec-grid {
@@ -479,6 +603,7 @@ export class MovieDetailPageComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly movie = signal<MovieResponse | null>(null);
   protected readonly loading = signal<boolean>(true);
@@ -498,6 +623,20 @@ export class MovieDetailPageComponent implements OnInit {
       }
     });
   }
+
+  protected readonly thumbnailUrl = computed(() => {
+    return getYouTubeThumbnailUrl(this.movie()?.trailerUrl);
+  });
+
+  protected readonly safeTrailerUrl = computed<SafeResourceUrl | null>(() => {
+    const raw = this.movie()?.trailerUrl;
+    if (!raw) return null;
+    const videoId = extractYouTubeVideoId(raw);
+    if (!videoId) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`
+    );
+  });
 
   protected readonly monogram = computed(() => {
     const title = this.movie()?.title ?? '';

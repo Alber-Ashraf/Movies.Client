@@ -18,6 +18,7 @@ import { MovieCardSkeletonComponent } from '../../../shared/ui/skeleton/movie-ca
 import { StarRatingComponent } from '../../../shared/ui/star-rating/star-rating.component';
 import { MovieCardComponent } from '../components/movie-card.component';
 import { MovieFiltersComponent } from '../components/movie-filters.component';
+import { TrailerModalComponent } from '../components/trailer-modal.component';
 import { MoviesStore } from '../data-access/movies.store';
 import { MovieResponse } from '../models/movie.models';
 
@@ -34,6 +35,7 @@ import { MovieResponse } from '../models/movie.models';
     EmptyStateComponent,
     ErrorBannerComponent,
     ConfirmDialogComponent,
+    TrailerModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -56,6 +58,10 @@ import { MovieResponse } from '../models/movie.models';
                   <app-badge variant="genre">{{ g }}</app-badge>
                 }
               </div>
+
+              @if (featured.description) {
+                <p class="hero-description">{{ featured.description }}</p>
+              }
 
               <div class="hero-metrics">
                 <div class="metric-block">
@@ -86,7 +92,16 @@ import { MovieResponse } from '../models/movie.models';
                 <a [routerLink]="['/movies', featured.slug]" class="btn-spotlight-primary">
                   Explore Details
                 </a>
-                @if (auth.isAdmin()) {
+                @if (featured.trailerUrl) {
+                  <button
+                    type="button"
+                    class="btn-spotlight-trailer"
+                    (click)="isFeaturedTrailerOpen.set(true)"
+                  >
+                    ▶ Watch Trailer
+                  </button>
+                }
+                @if (auth.canManageMovies()) {
                   <button
                     type="button"
                     class="btn-spotlight-ghost"
@@ -98,6 +113,13 @@ import { MovieResponse } from '../models/movie.models';
               </div>
             </div>
           </section>
+
+          <app-trailer-modal
+            [isOpen]="isFeaturedTrailerOpen()"
+            [movieTitle]="featured.title"
+            [trailerUrl]="featured.trailerUrl"
+            (closed)="isFeaturedTrailerOpen.set(false)"
+          />
         }
       }
 
@@ -112,7 +134,7 @@ import { MovieResponse } from '../models/movie.models';
 
         @if (!auth.isAuthenticated()) {
           <div class="auth-hint-pill">
-            <span>Tip: Switch Identity in the top bar to <strong>Member</strong> or <strong>Admin</strong> to rate or manage films.</span>
+            <span>Sign in as a <strong>Member</strong>, <strong>Critic</strong>, or <strong>Admin</strong> to rate films and contribute to the archive.</span>
           </div>
         }
       </div>
@@ -137,7 +159,7 @@ import { MovieResponse } from '../models/movie.models';
       @if (store.error(); as err) {
         <app-error-banner
           [message]="err.message"
-          hint="Ensure the ASP.NET Core Movies.Api backend is running on http://localhost:5211."
+          hint="Ensure the ASP.NET Core Movies.Api backend is reachable and CORS is configured."
           (retryClicked)="store.loadCatalog()"
         />
       }
@@ -173,7 +195,7 @@ import { MovieResponse } from '../models/movie.models';
                 class="btn-seed"
                 (click)="store.seedSampleMovies()"
               >
-                🎬 Seed 6 Sample Classics (Inception, Interstellar, The Dark Knight...)
+                Seed 15 Iconic Films via Backend DataSeeder
               </button>
             </div>
           }
@@ -186,7 +208,8 @@ import { MovieResponse } from '../models/movie.models';
             <app-movie-card
               [movie]="movie"
               [canRate]="auth.isAuthenticated()"
-              [isAdmin]="auth.isAdmin()"
+              [canEdit]="auth.canManageMovies()"
+              [canDelete]="auth.isAdmin()"
               (rated)="store.rateMovie(movie, $event)"
               (ratingCleared)="store.removeRating(movie)"
               (editRequested)="store.openEditModal($event)"
@@ -296,6 +319,14 @@ import { MovieResponse } from '../models/movie.models';
       gap: 8px;
     }
 
+    .hero-description {
+      font-size: 0.96rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 2px 0 0;
+    }
+
     .hero-metrics {
       display: flex;
       flex-wrap: wrap;
@@ -364,6 +395,25 @@ import { MovieResponse } from '../models/movie.models';
       color: var(--text-primary);
       font-weight: 600;
       font-size: 0.9rem;
+    }
+
+    .btn-spotlight-trailer {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      background: rgba(229, 9, 20, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-spotlight-trailer:hover {
+      background: #e50914;
+      transform: translateY(-1px);
     }
 
     .section-header {
@@ -480,6 +530,7 @@ export class MovieListPageComponent implements OnInit {
 
   private readonly searchSubject = new Subject<string>();
   protected readonly moviePendingDelete = signal<MovieResponse | null>(null);
+  protected readonly isFeaturedTrailerOpen = signal<boolean>(false);
 
   ngOnInit(): void {
     this.store.loadCatalog();

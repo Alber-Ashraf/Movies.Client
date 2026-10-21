@@ -26,7 +26,7 @@ export class MoviesStore {
   private readonly _titleSearch = signal<string>('');
   private readonly _selectedGenre = signal<string>('');
   private readonly _selectedYear = signal<number | undefined>(undefined);
-  private readonly _sortBy = signal<string>('');
+  private readonly _sortBy = signal<string>('title');
   private readonly _page = signal<number>(1);
   private readonly _pageSize = signal<number>(12);
 
@@ -80,7 +80,7 @@ export class MoviesStore {
       this._titleSearch().trim().length > 0 ||
       this._selectedGenre().trim().length > 0 ||
       this._selectedYear() !== undefined ||
-      this._sortBy().trim().length > 0
+      (this._sortBy().trim().length > 0 && this._sortBy() !== 'title')
   );
 
   loadCatalog(): void {
@@ -156,7 +156,7 @@ export class MoviesStore {
     this._titleSearch.set('');
     this._selectedGenre.set('');
     this._selectedYear.set(undefined);
-    this._sortBy.set('');
+    this._sortBy.set('title');
     this._page.set(1);
     this.loadCatalog();
   }
@@ -248,35 +248,17 @@ export class MoviesStore {
   }
 
   seedSampleMovies(): void {
-    const samples: readonly CreateMovieRequest[] = [
-      { title: 'Inception', yearOfRelease: 2010, genres: ['Action', 'Sci-Fi', 'Thriller'] },
-      { title: 'Interstellar', yearOfRelease: 2014, genres: ['Adventure', 'Drama', 'Sci-Fi'] },
-      { title: 'The Dark Knight', yearOfRelease: 2008, genres: ['Action', 'Crime', 'Drama'] },
-      { title: 'Oppenheimer', yearOfRelease: 2023, genres: ['Biography', 'Drama', 'History'] },
-      { title: 'The Matrix', yearOfRelease: 1999, genres: ['Action', 'Sci-Fi'] },
-      { title: 'Pulp Fiction', yearOfRelease: 1994, genres: ['Crime', 'Drama'] },
-    ];
-
-    let created = 0;
     this._loading.set(true);
-
-    samples.forEach((sample, idx) => {
-      this.api.createMovie(sample).subscribe({
-        next: () => {
-          created++;
-          if (idx === samples.length - 1) {
-            this.toast.show(`Seeded ${created} iconic movies into the catalog.`, 'success');
-            this.loadCatalog();
-            this.loadGenres();
-          }
-        },
-        error: () => {
-          if (idx === samples.length - 1) {
-            this.loadCatalog();
-            this.loadGenres();
-          }
-        },
-      });
+    this.api.seedCatalog().subscribe({
+      next: () => {
+        this.toast.show('Seeded 15 iconic films and ratings into the catalog.', 'success');
+        this.loadCatalog();
+        this.loadGenres();
+      },
+      error: (err: ApiError) => {
+        this._loading.set(false);
+        this.toast.show(err.message, 'error');
+      },
     });
   }
 }

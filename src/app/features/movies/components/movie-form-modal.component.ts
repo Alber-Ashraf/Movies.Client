@@ -31,43 +31,69 @@ import { CreateMovieRequest, MovieResponse, UpdateMovieRequest } from '../models
           </div>
         }
 
-        <!-- Title Field -->
-        <div class="form-field">
-          <label for="movie-title" class="field-label">Movie Title *</label>
-          <input
-            id="movie-title"
-            type="text"
-            formControlName="title"
-            class="field-input"
-            placeholder="e.g. Inception"
-            [class.invalid]="isFieldInvalid('title')"
-          />
-          @if (isFieldInvalid('title')) {
-            <span class="field-error">A movie title is required.</span>
-          }
-          @if (apiError()?.fieldErrors?.['title']) {
-            <span class="field-error">{{ apiError()?.fieldErrors?.['title'] }}</span>
-          }
+        <div class="form-row-split">
+          <!-- Title Field -->
+          <div class="form-field flex-2">
+            <label for="movie-title" class="field-label">Movie Title *</label>
+            <input
+              id="movie-title"
+              type="text"
+              formControlName="title"
+              class="field-input"
+              placeholder="e.g. Inception"
+              [class.invalid]="isFieldInvalid('title')"
+            />
+            @if (isFieldInvalid('title')) {
+              <span class="field-error">A movie title is required.</span>
+            }
+            @if (apiError()?.fieldErrors?.['title']) {
+              <span class="field-error">{{ apiError()?.fieldErrors?.['title'] }}</span>
+            }
+          </div>
+
+          <!-- Year of Release Field -->
+          <div class="form-field flex-1">
+            <label for="movie-year" class="field-label">Release Year *</label>
+            <input
+              id="movie-year"
+              type="number"
+              formControlName="yearOfRelease"
+              class="field-input"
+              min="1888"
+              [max]="currentYear"
+              [class.invalid]="isFieldInvalid('yearOfRelease')"
+            />
+            @if (isFieldInvalid('yearOfRelease')) {
+              <span class="field-error">1900 – {{ currentYear }}</span>
+            }
+            @if (apiError()?.fieldErrors?.['yearofrelease']) {
+              <span class="field-error">{{ apiError()?.fieldErrors?.['yearofrelease'] }}</span>
+            }
+          </div>
         </div>
 
-        <!-- Year of Release Field -->
+        <!-- Official Trailer URL Field -->
         <div class="form-field">
-          <label for="movie-year" class="field-label">Year of Release *</label>
+          <label for="movie-trailer" class="field-label">Official Trailer URL (YouTube)</label>
           <input
-            id="movie-year"
-            type="number"
-            formControlName="yearOfRelease"
+            id="movie-trailer"
+            type="url"
+            formControlName="trailerUrl"
             class="field-input"
-            min="1888"
-            [max]="currentYear"
-            [class.invalid]="isFieldInvalid('yearOfRelease')"
+            placeholder="https://www.youtube.com/watch?v=YoHD9XEInc0"
           />
-          @if (isFieldInvalid('yearOfRelease')) {
-            <span class="field-error">Enter a valid release year (1900 – {{ currentYear }}).</span>
-          }
-          @if (apiError()?.fieldErrors?.['yearofrelease']) {
-            <span class="field-error">{{ apiError()?.fieldErrors?.['yearofrelease'] }}</span>
-          }
+        </div>
+
+        <!-- Synopsis / Description Field -->
+        <div class="form-field">
+          <label for="movie-description" class="field-label">Official Synopsis</label>
+          <textarea
+            id="movie-description"
+            rows="4"
+            formControlName="description"
+            class="field-textarea"
+            placeholder="Enter the plot summary and theatrical synopsis..."
+          ></textarea>
         </div>
 
         <!-- Genres Tag Builder -->
@@ -143,7 +169,20 @@ import { CreateMovieRequest, MovieResponse, UpdateMovieRequest } from '../models
     .movie-form {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
+    }
+
+    .form-row-split {
+      display: flex;
+      gap: 12px;
+    }
+
+    .flex-2 {
+      flex: 2;
+    }
+
+    .flex-1 {
+      flex: 1;
     }
 
     .api-error-alert {
@@ -175,6 +214,18 @@ import { CreateMovieRequest, MovieResponse, UpdateMovieRequest } from '../models
       border: 1px solid var(--border-subtle);
       color: var(--text-primary);
       font-size: 0.92rem;
+    }
+
+    .field-textarea {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-family: inherit;
+      line-height: 1.5;
+      resize: vertical;
     }
 
     .field-input.invalid {
@@ -328,6 +379,8 @@ export class MovieFormModalComponent {
       this.currentYear,
       [Validators.required, Validators.min(1900), Validators.max(this.currentYear)],
     ],
+    trailerUrl: [''],
+    description: [''],
   });
 
   constructor() {
@@ -341,12 +394,16 @@ export class MovieFormModalComponent {
           this.form.patchValue({
             title: movie.title,
             yearOfRelease: movie.yearOfRelease,
+            trailerUrl: movie.trailerUrl ?? '',
+            description: movie.description ?? '',
           });
           this.genresList.set([...movie.genres]);
         } else {
           this.form.reset({
             title: '',
             yearOfRelease: this.currentYear,
+            trailerUrl: '',
+            description: '',
           });
           this.genresList.set([]);
         }
@@ -398,10 +455,12 @@ export class MovieFormModalComponent {
       return;
     }
 
-    const { title, yearOfRelease } = this.form.getRawValue();
+    const { title, yearOfRelease, trailerUrl, description } = this.form.getRawValue();
     this.submitted.emit({
       title: title.trim(),
       yearOfRelease: Number(yearOfRelease),
+      trailerUrl: trailerUrl.trim() || null,
+      description: description.trim() || null,
       genres: this.genresList(),
     });
   }

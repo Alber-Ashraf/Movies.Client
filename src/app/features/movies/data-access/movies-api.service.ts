@@ -88,4 +88,8 @@ export class MoviesApiService {
   getGenres(): Observable<readonly string[]> {
     return this.http.get<readonly string[]>(`${this.config.apiBaseUrl}/genres`);
   }
+
+  seedCatalog(): Observable<{ readonly message: string }> {
+    return this.http.post<{ readonly message: string }>(`${this.config.apiBaseUrl}/movies/seed`, {});
+  }
 }

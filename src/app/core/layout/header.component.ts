@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
-import { UserRolePreset } from '../auth/auth.models';
 import { ThemeService } from './theme.service';
 import { ToastService } from './toast.service';
 import { LoadingService } from '../http/loading.service';
@@ -48,37 +47,53 @@ import { LoadingService } from '../http/loading.service';
           }
         </nav>
 
-        <!-- Actions & Identity Switcher -->
+        <!-- Actions & Enterprise Identity Controls -->
         <div class="header-actions">
-          <!-- Role Switcher Pills -->
-          <div class="role-switcher" role="group" aria-label="Identity Role Switcher">
-            <span class="role-label">Identity:</span>
-            @for (role of roles; track role.id) {
+          @if (authService.session(); as session) {
+            <!-- New Movie CTA (Admin Only) -->
+            @if (authService.isAdmin()) {
               <button
                 type="button"
-                class="role-pill"
-                [class.active]="authService.activeRolePreset() === role.id"
-                [disabled]="authService.isSwitchingRole()"
-                (click)="onSelectRole(role.id, role.label)"
-                [title]="role.hint"
+                class="btn-create-movie"
+                (click)="createMovieRequested.emit()"
               >
-                <span class="status-dot" [attr.data-role]="role.id"></span>
-                {{ role.label }}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                </svg>
+                <span>Add Movie</span>
               </button>
             }
-          </div>
 
-          <!-- New Movie CTA (Admin Only) -->
-          @if (authService.isAdmin()) {
+            <!-- Authenticated User Badge -->
+            <div class="user-profile-pill">
+              <span class="status-dot" [attr.data-role]="authService.activeRolePreset()"></span>
+              <div class="user-info">
+                <span class="user-name">{{ session.fullName }}</span>
+                <span class="user-role-tag">{{ session.role }}</span>
+              </div>
+              <button
+                type="button"
+                class="btn-signout"
+                (click)="onSignOut()"
+                title="Sign Out"
+              >
+                Sign Out
+              </button>
+            </div>
+          } @else {
             <button
               type="button"
-              class="btn-create-movie"
-              (click)="createMovieRequested.emit()"
+              class="btn-signin"
+              (click)="authService.openAuthModal('login')"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
-              </svg>
-              <span>Add Movie</span>
+              Sign In
+            </button>
+            <button
+              type="button"
+              class="btn-register"
+              (click)="authService.openAuthModal('register')"
+            >
+              Create Account
             </button>
           }
 
@@ -194,55 +209,93 @@ import { LoadingService } from '../http/loading.service';
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .role-switcher {
-      display: flex;
+    .user-profile-pill {
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px;
+      gap: 10px;
+      padding: 5px 8px 5px 12px;
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-full);
     }
 
-    .role-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      padding: 0 8px 0 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .role-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 11px;
+    .user-name {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .user-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
       border-radius: var(--radius-full);
-      font-size: 0.8rem;
-      font-weight: 500;
+      background: var(--accent-gold-subtle);
+      color: var(--accent-gold);
+    }
+
+    .btn-signout {
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.76rem;
+      font-weight: 600;
       color: var(--text-secondary);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
       transition: all var(--transition-fast);
     }
 
-    .role-pill:hover:not(:disabled) {
-      color: var(--text-primary);
-      background: var(--bg-surface-elevated);
+    .btn-signout:hover {
+      color: var(--color-danger);
+      border-color: var(--color-danger);
+      background: var(--color-danger-bg);
     }
 
-    .role-pill.active {
-      background: var(--bg-surface-hover);
+    .btn-signin {
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
       color: var(--text-primary);
       font-weight: 600;
-      box-shadow: var(--shadow-sm);
+      font-size: 0.86rem;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-signin:hover {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    .btn-register {
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      background: var(--accent-gold);
+      color: var(--text-on-accent);
+      font-weight: 600;
+      font-size: 0.86rem;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-register:hover {
+      background: var(--accent-gold-hover);
+      transform: translateY(-1px);
     }
 
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--text-muted);
     }
@@ -298,9 +351,6 @@ import { LoadingService } from '../http/loading.service';
     }
 
     @media (max-width: 820px) {
-      .role-label {
-        display: none;
-      }
       .header-container {
         padding: 0 16px;
         height: auto;
@@ -319,36 +369,11 @@ export class AppHeaderComponent {
   private readonly toastService = inject(ToastService);
 
   readonly createMovieRequested = output<void>();
-  readonly roleChanged = output<UserRolePreset>();
+  readonly roleChanged = output<void>();
 
-  readonly roles: ReadonlyArray<{ id: UserRolePreset; label: string; hint: string }> = [
-    { id: 'guest', label: 'Guest', hint: 'Browse public catalog only' },
-    { id: 'viewer', label: 'Member', hint: 'Authenticated user — can rate movies' },
-    { id: 'trusted', label: 'Trusted', hint: 'Trusted member claim enabled' },
-    { id: 'admin', label: 'Admin', hint: 'Full CRUD + Rating permissions' },
-  ];
-
-  onSelectRole(role: UserRolePreset, label: string): void {
-    if (this.authService.activeRolePreset() === role) return;
-
-    const req$ = this.authService.switchRolePreset(role);
-    if (!req$) {
-      this.toastService.show('Switched to Guest mode (anonymous).', 'info');
-      this.roleChanged.emit('guest');
-      return;
-    }
-
-    req$.subscribe({
-      next: () => {
-        this.toastService.show(`Signed in with ${label} JWT token.`, 'success');
-        this.roleChanged.emit(role);
-      },
-      error: (err: { message?: string }) => {
-        this.toastService.show(
-          err.message ?? 'Could not acquire JWT token from backend.',
-          'error'
-        );
-      },
-    });
+  onSignOut(): void {
+    this.authService.logout();
+    this.toastService.show('Signed out of your account.', 'info');
+    this.roleChanged.emit();
   }
 }

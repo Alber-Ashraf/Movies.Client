@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'http://localhost:5211/api',
+  apiBaseUrl: 'https://cinemovies.runasp.net/api',
 };

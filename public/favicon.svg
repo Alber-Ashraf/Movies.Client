@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#171b26"/>
+      <stop offset="100%" stop-color="#0b0d13"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="8" y1="12" x2="56" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffc34d"/>
+      <stop offset="100%" stop-color="#f5a623"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded App Tile -->
+  <rect width="64" height="64" rx="14" fill="url(#bgGrad)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" stroke="#f5a623" stroke-opacity="0.35" stroke-width="3"/>
+
+  <!-- Cinema Film Frame -->
+  <rect x="10" y="14" width="44" height="36" rx="6" stroke="url(#goldGrad)" stroke-width="4"/>
+  <path d="M21 14V50M43 14V50M10 25H21M43 25H54M10 39H21M43 39H54" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Center Play Triangle -->
+  <path d="M28.5 25.5L39.5 32L28.5 38.5V25.5Z" fill="url(#goldGrad)"/>
+</svg>

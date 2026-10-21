@@ -13,6 +13,9 @@
   <!-- Global Toast Notifications Stack -->
   <app-toast-container />
 
+  <!-- Enterprise Authentication Modal -->
+  <app-auth-modal (authenticated)="store.loadCatalog()" />
+
   <!-- Global Movie Create / Edit Modal Drawer -->
   <app-movie-form-modal
     [isOpen]="store.isEditorOpen()"
@@ -32,7 +35,7 @@
         <span class="footer-copy">Production-grade Angular 20 Client</span>
       </div>
       <div class="footer-right">
-        <span class="api-target">Backend: <code>http://localhost:5211/api</code></span>
+        <span class="api-target">Backend: <code>{{ config.apiBaseUrl }}</code></span>
       </div>
     </div>
   </footer>
